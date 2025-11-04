@@ -1,16 +1,13 @@
-// ✅ app.js — v0.7.1 Stable (GPT-5 개인화 + 동적 운동 루틴 + 카메라 대응)
-
+// ✅ app.js — v0.7.4 (Step UI + 루틴 전환 + 세션 실행)
 let video, overlay, ctx, detector;
 let running = false;
 let currentExercise = null;
 let repCount = 0;
-let lastPhase = 'up';
-let accuracyAvg = [];
+let lastPhase = "up";
 let voiceOn = true;
+const API_BASE = ""; // index.html에서 전역 설정됨
 
-const API_BASE = "";
-
-/* ========== 공통 기능 ========== */
+/* ====== 공통 ====== */
 function speak(msg) {
   if (!voiceOn) return;
   const u = new SpeechSynthesisUtterance(msg);
@@ -19,15 +16,19 @@ function speak(msg) {
   window.speechSynthesis.speak(u);
 }
 
-function setFeedback(msg, level = 'ok') {
-  const el = document.getElementById('feedback');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = level;
-  if (level !== 'ok') speak(msg);
+function showStep(n) {
+  ["step1", "step2", "step3"].forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("hidden", i !== n - 1);
+  });
+  ["s1", "s2", "s3"].forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("active", i === n - 1);
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-/* ========== 카메라 & 모델 ========== */
+/* ====== 카메라 & 모델 ====== */
 async function initDetector() {
   const model = poseDetection.SupportedModels.MoveNet;
   detector = await poseDetection.createDetector(model, {
@@ -36,11 +37,11 @@ async function initDetector() {
 }
 
 async function startCamera() {
-  video = document.getElementById('video');
-  overlay = document.getElementById('overlay');
-  ctx = overlay.getContext('2d');
+  video = document.getElementById("video");
+  overlay = document.getElementById("overlay");
+  ctx = overlay.getContext("2d");
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+    video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
     audio: false,
   });
   video.srcObject = stream;
@@ -52,7 +53,7 @@ async function startCamera() {
 function drawKeypoints(kps) {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
   ctx.drawImage(video, 0, 0, overlay.width, overlay.height);
-  ctx.fillStyle = 'aqua';
+  ctx.fillStyle = "#00e0ff";
   kps.forEach(k => {
     if (k.score > 0.5) {
       ctx.beginPath();
@@ -62,33 +63,21 @@ function drawKeypoints(kps) {
   });
 }
 
-/* ========== 운동 이름 인식 및 동적 평가 ========== */
-function normalizeExercise(name) {
-  const n = name.toLowerCase();
-  if (n.includes("스쿼트") || n.includes("squat")) return "squat";
-  if (n.includes("데드") || n.includes("dead")) return "deadlift";
-  if (n.includes("벤치") || n.includes("bench")) return "bench";
-  if (n.includes("푸시") || n.includes("push")) return "pushup";
-  if (n.includes("플랭크") || n.includes("plank")) return "plank";
-  if (n.includes("런지") || n.includes("lunge")) return "lunge";
-  if (n.includes("버피") || n.includes("burpee")) return "burpee";
-  return "generic";
-}
-
 function evaluateGeneric(kps) {
-  const hip = kps.find(k => k.name.includes('hip'));
-  const knee = kps.find(k => k.name.includes('knee'));
+  const hip = kps.find(k => k.name.includes("hip"));
+  const knee = kps.find(k => k.name.includes("knee"));
   if (!hip || !knee) return;
   const dy = Math.abs(hip.y - knee.y);
-  if (dy < 60 && lastPhase === 'up') lastPhase = 'down';
-  if (dy > 100 && lastPhase === 'down') {
-    lastPhase = 'up';
+  if (dy < 60 && lastPhase === "up") lastPhase = "down";
+  if (dy > 100 && lastPhase === "down") {
+    lastPhase = "up";
     repCount++;
     speak(`${repCount}회`);
+    document.getElementById("reps").textContent = repCount;
   }
 }
 
-/* ========== 루프 ========== */
+/* ====== 루프 ====== */
 async function loop() {
   if (!running) return;
   const poses = await detector.estimatePoses(video, { flipHorizontal: true });
@@ -99,7 +88,7 @@ async function loop() {
   requestAnimationFrame(loop);
 }
 
-/* ========== 루틴 요청 ========== */
+/* ====== AI 루틴 요청 ====== */
 async function requestRoutine() {
   const payload = {
     sex: document.getElementById("sex").value,
@@ -124,53 +113,56 @@ async function requestRoutine() {
   btn.disabled = true;
   btn.textContent = "AI 분석 중...";
 
-  const r = await fetch(`${API_BASE}/api/routine`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await r.json();
-  btn.disabled = false;
-  btn.textContent = "AI 루틴 추천받기 & 코칭 시작";
-
-  const routine = data?.routine || "루틴 생성 실패";
-  document.getElementById("routineText").textContent = routine;
-
-  // 운동 목록 자동 생성
-  const exercises = [];
-  const lines = routine.split("\n");
-  lines.forEach(line => {
-    const match = line.match(/(\d+\.)\s*(.+?)[:：]/);
-    if (match) exercises.push({ name: match[2].trim() });
-  });
-  renderRoutineCards(exercises);
+  try {
+    const r = await fetch(`${API_BASE}/api/routine`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await r.json();
+    const routine = data?.routine || "루틴 생성 실패";
+    document.getElementById("routineText").textContent = routine;
+    renderRoutineCards(routine.split("\n"));
+    showStep(3);
+    speak("AI 맞춤 루틴이 완성되었습니다.");
+  } catch (err) {
+    alert("❌ 루틴 생성 실패: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "AI 루틴 추천받기 & 코칭 시작";
+  }
 }
 
-/* ========== 루틴 카드 렌더링 ========== */
-function renderRoutineCards(list) {
+/* ====== 루틴 카드 생성 ====== */
+function renderRoutineCards(lines) {
   const wrap = document.getElementById("routineCards");
   wrap.innerHTML = "";
-  list.forEach((ex, i) => {
-    const key = normalizeExercise(ex.name);
+  const exercises = lines
+    .filter(l => /(\d+\.)\s*(.+)/.test(l))
+    .map(l => l.replace(/(\d+\.)\s*/, ""));
+  exercises.forEach((name, i) => {
     const div = document.createElement("div");
     div.className = "routine-card";
     div.innerHTML = `
-      <h3>${i + 1}. ${ex.name}</h3>
-      <button class="startNow" data-ex="${key}">바로 시작</button>`;
+      <h3>${i + 1}. ${name}</h3>
+      <button class="startNow" data-ex="${name}">바로 시작</button>`;
     wrap.appendChild(div);
   });
-  [...document.querySelectorAll(".startNow")].forEach(btn => {
+
+  document.querySelectorAll(".startNow").forEach(btn => {
     btn.addEventListener("click", async e => {
       const ex = e.currentTarget.dataset.ex;
       currentExercise = ex;
+      speak(`${ex} 시작합니다`);
       await ensureCamera();
       running = true;
       loop();
-      speak(`${ex} 시작합니다`);
+      document.getElementById("feedback").textContent = `${ex} 진행 중`;
     });
   });
 }
 
+/* ====== 보조 ====== */
 async function ensureCamera() {
   try {
     if (!video || !video.srcObject) await startCamera();
@@ -180,8 +172,12 @@ async function ensureCamera() {
   }
 }
 
-/* ========== 초기화 ========== */
+/* ====== 초기화 ====== */
 document.addEventListener("DOMContentLoaded", () => {
+  // Step navigation
+  showStep(1);
+  document.getElementById("toStep2").addEventListener("click", () => showStep(2));
+  document.getElementById("back1").addEventListener("click", () => showStep(1));
   document.getElementById("requestRoutine").addEventListener("click", requestRoutine);
   document.getElementById("voiceToggle").addEventListener("change", e => {
     voiceOn = e.target.checked;
