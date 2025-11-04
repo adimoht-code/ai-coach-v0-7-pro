@@ -1,48 +1,38 @@
-// ✅ v0.7.5 Step UI + Session 통합 안정판
+// ✅ v0.7.6 Stable - 루틴 카드 간략화 + 자동 세션 + 음성 코칭
 let video, overlay, ctx, detector;
 let running = false;
-let repCount = 0;
-let lastPhase = "up";
+let routinePlan = [];
+let currentIndex = 0;
 let voiceOn = true;
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 초기 숨김
   ["#step2", "#step3", "#sessionArea"].forEach(sel =>
     document.querySelector(sel)?.classList.add("hidden")
   );
-
-  // Step 이동
   document.getElementById("toStep2").addEventListener("click", () => showStep(2));
   document.getElementById("back1").addEventListener("click", () => showStep(1));
   document.getElementById("requestRoutine").addEventListener("click", requestRoutine);
-  document.getElementById("voiceToggle").addEventListener("change", e => {
-    voiceOn = e.target.checked;
-  });
-
-  // 세션 제어
-  document.getElementById("startBtn").addEventListener("click", startSession);
-  document.getElementById("stopBtn").addEventListener("click", stopSession);
-
   showStep(1);
 });
-
-function showStep(n) {
-  ["step1", "step2", "step3", "sessionArea"].forEach((id, i) => {
-    const el = document.getElementById(id);
-    el.classList.toggle("hidden", i !== n - 1);
-  });
-  ["s1", "s2", "s3"].forEach((id, i) => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle("active", i === n - 1);
-  });
-}
 
 function speak(msg) {
   if (!voiceOn) return;
   const u = new SpeechSynthesisUtterance(msg);
   u.lang = "ko-KR";
-  u.rate = 1;
+  u.rate = 1.0;
   window.speechSynthesis.speak(u);
+}
+
+function showStep(n) {
+  ["step1", "step2", "step3", "sessionArea"].forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("hidden", i !== n - 1);
+  });
+  ["s1", "s2", "s3"].forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("active", i === n - 1);
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 async function requestRoutine() {
@@ -51,40 +41,76 @@ async function requestRoutine() {
   btn.textContent = "AI 분석 중...";
 
   try {
-    const res = await fetch(`${API_BASE}/api/routine`, {
+    const r = await fetch(`${API_BASE}/api/routine`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ height: 170, weight: 70, goal: "증량", periodWeeks: 12 })
+      body: JSON.stringify(collectUserInput())
     });
-    const data = await res.json();
+    const data = await r.json();
     const routine = data?.routine || "루틴 생성 실패";
-    document.getElementById("routineText").textContent = routine;
-    renderRoutineCards(routine.split("\n"));
+
+    routinePlan = parseRoutine(routine);
+    renderRoutineCards(routinePlan);
     showStep(3);
-  } catch (e) {
-    alert("루틴 요청 실패: " + e.message);
+    speak("AI 맞춤 루틴이 완성되었습니다. 언제든 시작 버튼을 누르세요.");
+  } catch (err) {
+    alert("❌ 루틴 생성 실패: " + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = "AI 루틴 추천받기 & 코칭 시작";
   }
 }
 
-function renderRoutineCards(lines) {
+function collectUserInput() {
+  return {
+    sex: sex.value,
+    age: age.value,
+    height: height.value,
+    weight: weight.value,
+    bodyfat: bodyfat.value,
+    level: level.value,
+    environment: environment.value,
+    daysPerWeek: daysPerWeek.value,
+    sleepHours: sleepHours.value,
+    diet: diet.value,
+    goal: goal.value,
+    targetWeight: targetWeight.value,
+    periodWeeks: periodWeeks.value,
+    equipment: [...document.querySelectorAll(".eq:checked")].map(x => x.value),
+    issues: [...document.querySelectorAll(".iss:checked")].map(x => x.value),
+  };
+}
+
+// ✅ AI 응답을 요일별 카드 형태로 변환
+function parseRoutine(text) {
+  const lines = text.split("\n").filter(l => l.trim());
+  const days = ["월", "화", "수", "목", "금", "토", "일"];
+  const plan = days.map(d => ({
+    day: d,
+    workout: lines.find(l => l.includes(d)) || `${d}요일: 휴식`
+  }));
+  return plan;
+}
+
+function renderRoutineCards(plan) {
   const wrap = document.getElementById("routineCards");
   wrap.innerHTML = "";
-  const items = lines.filter(l => l.trim().length > 5).slice(0, 6);
-  items.forEach((txt, i) => {
+  plan.forEach(p => {
     const div = document.createElement("div");
     div.className = "routine-card";
-    div.innerHTML = `<h3>${txt}</h3>
-      <button class="startNow">바로 시작</button>`;
-    div.querySelector("button").addEventListener("click", () => {
-      speak(`${txt} 시작합니다.`);
-      showStep(4);
-      startCamera();
-    });
+    div.innerHTML = `<h3>${p.day}요일</h3><p>${p.workout.replace(/^[-#\d\s]*/,'')}</p>
+      <button class="startDay" data-day="${p.day}">바로 시작</button>`;
+    div.querySelector("button").addEventListener("click", startFullSession);
     wrap.appendChild(div);
   });
+}
+
+// ✅ 자동 세션
+async function startFullSession() {
+  showStep(4);
+  currentIndex = 0;
+  await startCamera();
+  nextWorkout();
 }
 
 async function startCamera() {
@@ -96,42 +122,21 @@ async function startCamera() {
   await video.play();
   overlay.width = video.videoWidth;
   overlay.height = video.videoHeight;
-  running = true;
-  loop();
 }
 
-async function loop() {
-  if (!running || !detector) return;
-  const poses = await detector.estimatePoses(video, { flipHorizontal: true });
-  if (poses?.[0]) drawKeypoints(poses[0].keypoints);
-  requestAnimationFrame(loop);
-}
+function nextWorkout() {
+  if (currentIndex >= routinePlan.length) {
+    speak("루틴이 모두 완료되었습니다. 수고하셨습니다!");
+    document.getElementById("feedback").textContent = "루틴 완료!";
+    return;
+  }
+  const workout = routinePlan[currentIndex].workout.replace(/^[^:]+:/, "").trim();
+  speak(`${workout} 시작합니다.`);
+  document.getElementById("feedback").textContent = `${workout} 진행 중...`;
+  currentIndex++;
 
-function drawKeypoints(kps) {
-  ctx.clearRect(0, 0, overlay.width, overlay.height);
-  ctx.drawImage(video, 0, 0, overlay.width, overlay.height);
-  ctx.fillStyle = "#00e0ff";
-  kps.forEach(k => {
-    if (k.score > 0.5) {
-      ctx.beginPath();
-      ctx.arc(k.x, k.y, 4, 0, 2 * Math.PI);
-      ctx.fill();
-    }
-  });
-}
-
-async function startSession() {
-  if (!detector)
-    detector = await poseDetection.createDetector(
-      poseDetection.SupportedModels.MoveNet,
-      { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
-    );
-  running = true;
-  speak("운동 세션을 시작합니다.");
-  loop();
-}
-
-function stopSession() {
-  running = false;
-  speak("운동을 종료합니다.");
+  setTimeout(() => {
+    speak("좋아요. 다음 운동으로 넘어갑니다.");
+    nextWorkout();
+  }, 15000); // 각 운동 15초 시뮬레이션
 }
