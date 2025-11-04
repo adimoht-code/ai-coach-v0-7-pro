@@ -1,0 +1,16 @@
+{
+  "name": "ai-coach-v0-7-pro",
+  "version": "0.7.0",
+  "description": "AI 헬스코치 v0.7 (GPT-5 + 실시간 피드백 + 음성코칭)",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  }
+}
