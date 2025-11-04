@@ -1,3 +1,7 @@
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("#step2, #step3").forEach(sec => sec.classList.add("hidden"));
+});
+
 // ✅ app.js — v0.7.4 (Step UI + 루틴 전환 + 세션 실행)
 let video, overlay, ctx, detector;
 let running = false;
