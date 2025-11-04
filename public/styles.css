@@ -1,250 +1,79 @@
-/* === AI 헬스코치 Web v0.7.3 ===
-   Theme: Blue / White (v0.6 복원 + v0.7 구조 개선)
-   Author: ADIMO AI Coach */
-
-/* 기본 설정 */
+/* === v0.7.5 Stable Light Theme === */
 * { box-sizing: border-box; }
 body {
   font-family: "Noto Sans KR", sans-serif;
   background: #f5f7fb;
   color: #1e293b;
   margin: 0;
-  padding: 0;
   line-height: 1.5;
 }
 
-/* 헤더 */
 header {
   background: #2563eb;
-  color: white;
+  color: #fff;
   text-align: center;
   padding: 18px;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
 }
-h1 {
-  font-size: 1.6rem;
-  margin: 0;
-}
-.badge {
-  background: white;
-  color: #2563eb;
-  padding: 3px 8px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  margin-left: 8px;
-  font-weight: 600;
-}
-p {
-  margin: 4px 0 0;
-  font-size: 0.95rem;
-}
+.badge { background: #fff; color: #2563eb; padding: 3px 8px; border-radius: 6px; margin-left: 8px; }
 
-/* 메인 구조 */
-main {
-  padding: 20px;
-  max-width: 1080px;
-  margin: 0 auto;
-}
-
-/* 카드 UI */
+main { padding: 20px; max-width: 1080px; margin: auto; }
 .card {
-  background: white;
+  background: #fff;
   border: 1px solid #dbe4ff;
   border-radius: 20px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
   padding: 24px;
   margin: 20px 0;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.1);
-}
-h2 {
-  color: #1e3a8a;
-  margin-bottom: 16px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
 }
 
-/* 입력 폼 */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 14px;
-}
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.95rem;
-  color: #1e3a8a;
-}
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.step { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f1f5ff; color: #1e3a8a; font-size: 0.9rem; }
+.step.active { background: #2563eb; color: #fff; }
+
+.hidden { display: none !important; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 14px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 0.95rem; color: #1e3a8a; }
 input, select, button {
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  font-size: 0.95rem;
-  background: white;
-  transition: all 0.2s ease;
+  padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;
+  font-size: 0.95rem; background: #fff;
 }
-input:focus, select:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-}
-
-/* 버튼 */
 button {
-  background: #2563eb;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  border-radius: 8px;
-  padding: 10px 20px;
-  transition: background 0.2s ease, transform 0.15s;
+  background: #2563eb; color: #fff; border: none; cursor: pointer;
+  font-weight: 600; border-radius: 8px; padding: 10px 20px;
 }
-button:hover:not(:disabled) {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-}
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+button:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); }
 
-/* 상태 표시 */
-.status {
-  margin-left: 10px;
-  color: #10b981;
-  font-weight: 600;
-}
-
-/* 루틴 카드 */
-.routine-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 12px;
-  margin-top: 12px;
-}
+.routine-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
 .routine-card {
   background: #f8faff;
   border: 1px solid #dbe4ff;
   border-radius: 14px;
-  padding: 16px;
+  padding: 14px;
   text-align: center;
-  transition: all 0.2s ease;
 }
-.routine-card:hover {
-  background: #e9f0ff;
-  border-color: #93c5fd;
-}
-.routine-card h3 {
-  color: #1e3a8a;
-  font-size: 1.1rem;
-  margin-bottom: 6px;
-}
-.routine-card button {
-  width: 100%;
-  background: #2563eb;
-  color: white;
-  border-radius: 8px;
-  padding: 8px;
-  margin-top: 10px;
-}
-.routine-card button:hover {
-  background: #1e40af;
-}
+.routine-card:hover { background: #e9f0ff; border-color: #93c5fd; }
 
-/* 비디오 세션 영역 */
-.session-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 20px;
-  align-items: start;
-}
+.session-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
 .video-wrap {
   position: relative;
   background: #000;
   border-radius: 12px;
   overflow: hidden;
-  border: 2px solid #cbd5e1;
   aspect-ratio: 16/9;
+  border: 2px solid #cbd5e1;
 }
-#video, #overlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
+#video,#overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+
 .feedback {
-  position: absolute;
-  left: 10px;
-  bottom: 10px;
+  position: absolute; bottom: 10px; left: 10px;
   background: rgba(255,255,255,0.9);
-  padding: 8px 10px;
-  border-radius: 8px;
   color: #1e3a8a;
-  font-weight: 600;
+  padding: 8px 10px; border-radius: 8px; font-weight: 600;
   border-left: 4px solid #2563eb;
 }
-.feedback.warn { border-left-color: #f59e0b; background: #fff8e1; }
-.feedback.alert { border-left-color: #ef4444; background: #ffe5e5; }
 
-/* 통계/타이머 */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-.stats div {
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
-  border-radius: 10px;
-  padding: 10px;
-  text-align: center;
-  font-weight: 500;
-  color: #1e3a8a;
-}
-.timer {
-  background: #eff6ff;
-  border: 1px dashed #2563eb;
-  border-radius: 10px;
-  padding: 10px;
-  text-align: center;
-  margin-top: 10px;
-}
-
-/* 코드/로그 영역 */
-pre {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 10px;
-  white-space: pre-wrap;
-  font-size: 0.9rem;
-}
-
-/* 힌트 */
-.tip {
-  color: #475569;
-  font-size: 0.9rem;
-  margin-top: 8px;
-}
-
-/* 푸터 */
 footer {
-  text-align: center;
-  background: #f1f5ff;
-  color: #64748b;
-  padding: 16px;
-  border-top: 1px solid #dbe4ff;
-  margin-top: 30px;
-  border-radius: 0 0 20px 20px;
-}
-
-/* 반응형 */
-@media (max-width: 900px) {
-  .session-grid { grid-template-columns: 1fr; }
-  .grid { grid-template-columns: 1fr; }
-  .routine-cards { grid-template-columns: 1fr; }
+  text-align: center; background: #f1f5ff;
+  color: #64748b; padding: 16px; border-top: 1px solid #dbe4ff;
 }
